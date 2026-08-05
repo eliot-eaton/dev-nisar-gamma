@@ -63,13 +63,13 @@ def main():
 
     # Sort unique_dates in ascending order
  
-    if config['proc_slc_to_rslc']:
-        for date in unique_dates:
-            # Submit each task separately
-            
-            dev_proc_slc_to_rslc(date, config)
-            baseline_relative_to_master(date,config)
+    
+    for date in unique_dates:
+        # Submit each task separately
         
+        dev_proc_slc_to_rslc(date, config)
+        baseline_relative_to_master(date,config)
+    
             
 
 
