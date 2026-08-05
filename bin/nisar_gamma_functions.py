@@ -324,8 +324,8 @@ def dev_proc_slc_to_rslc(date, config):
     rslc_0_par_file = os.path.join(rslc_date_dir, f'{date}.0.rslc.par')
     rslc_file = os.path.join(rslc_date_dir, f'{date}.rslc')
     rslc_par_file = os.path.join(rslc_date_dir, f'{date}.rslc.par')
-    rmli_file = os.path.join(rslc_date_dir, f'{date}.0.mli')
-    rmli_par_file = os.path.join(rslc_date_dir, f'{date}.0.mli.par')
+    rmli_file = os.path.join(rslc_date_dir, f'{date}.mli')
+    rmli_par_file = os.path.join(rslc_date_dir, f'{date}.mli.par')
     ref_slc_file = os.path.join(slc_dateM_dir, f'{dateM}.slc')
     ref_slc_par_file = os.path.join(slc_dateM_dir, f'{dateM}.slc.par')
     hgt_file = os.path.join(slc_dateM_dir, f'{dateM}M.hgt')  # or provide a height map if available

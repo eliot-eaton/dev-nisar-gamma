@@ -68,7 +68,7 @@ def main():
         # Submit each task separately
         
         dev_proc_slc_to_rslc(date, config)
-        baseline_relative_to_master(date,config)
+        #baseline_relative_to_master(date,config)
     
             
 
