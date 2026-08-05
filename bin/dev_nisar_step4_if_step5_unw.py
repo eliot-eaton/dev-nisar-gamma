@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from tsx_if_proc_functions_dev import *
+from nisar_gamma_functions import *
 import argparse
 
 def main():
