@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from tsx_if_proc_functions_dev import *
+from nisar_gamma_functions import *
 import argparse
 
 def main():
@@ -68,7 +68,6 @@ def main():
      
       
         if config['proc_unw']:
-            if unw_q: 
                 proc_unw(date1, date2, config)
     
         processed_pairs.append((date1, date2))
