@@ -1084,3 +1084,120 @@ def proc_if(date1,date2,config):
                 print(f'ERROR removing {file}: {e}')
 
     return True
+
+def proc_unw(date1,date2,config):
+
+    # Assign variables
+    rlks = config["rlks"]
+    azlks = config["azlks"]
+    dem = config["dem"]
+    demlat = config["demlat"]
+    demlon = config["demlon"]
+    npat_r = config["npat_r"]
+    npat_az = config["npat_az"]
+    r_init = config["r_init"]
+    az_init = config["az_init"]
+    dateM = config['dateM']
+    topdir = config['topdir']
+    slc_dir = config["slc_dir"]
+    dim_dir = config["dim_dir"]
+    rslc_dir = os.path.join(topdir,'rslc')
+    
+    dem_par = pg.ParFile(os.path.join(slc_dir,f'{dateM}M','P.dem_par'))	
+    widthdem=int(dem_par.get_value('width'))
+    config['widthdem'] = widthdem
+
+    dateM_mli_par = pg.ParFile(os.path.join(topdir,'slcs',f'{dateM}M',f'{dateM}.mli.par'))
+    lengthmli= int(dateM_mli_par.get_value('azimuth_lines')) 
+    widthmli=int(dateM_mli_par.get_value('range_samples'))
+
+    ifgm_dir = os.path.join(topdir,'ifgms',f'{date1}-{date2}')
+    # Coherence
+    # Do on unsmoothed interferogram
+    # Window currently at 5x5. (also triangular weighting - difference not investigated)
+    # coherence estimation from normalized interferogram and co-registered intensity images
+        
+    pg.cc_wave(os.path.join(ifgm_dir,f'{date1}-{date2}.diff'), 
+               os.path.join(rslc_dir,date1,f'{date1}.mli'), 
+               os.path.join(rslc_dir,date2,f'{date2}.mli'), 
+               os.path.join(ifgm_dir,f'{date1}-{date2}.cc'), 
+               widthmli, 5, 5, 1)
+
+
+    ###############
+    # UNWRAPPING
+    ########## MCF
+
+	# Phase unwrapping mask
+	# Be careful with what you are using as Coherence (smoothed or original) to mask
+
+    # Phase unwrapping mask
+    pg.rascc_mask(os.path.join(ifgm_dir,f'{date1}-{date2}.smcc3'),
+                  os.path.join(rslc_dir,date1, f'{date1}.mli'), widthmli, 1, 1, 0, 1, 1, 0.5, 0.0, 0.1, 0.9, 1.0, 0.20, 1, 
+                  os.path.join(ifgm_dir,f'{date1}-{date2}.mask.ras'))
+    # Unwrap Minimum Cost Function
+    pg.mcf(os.path.join(ifgm_dir,f'{date1}-{date2}.diff_sm3'),
+           os.path.join(ifgm_dir,f'{date1}-{date2}.smcc3'), 
+           os.path.join(ifgm_dir,f'{date1}-{date2}.mask.ras'),
+           os.path.join(ifgm_dir,f'{date1}-{date2}.diff_sm.unw'), 
+            widthmli, 
+            0, 
+            '-', '-', '-', '-', 
+            npat_r, npat_az, '-',
+            r_init, az_init, 1)
+
+   
+    
+    #disrmg f'{date1}-{date2}.diff_sm.unw {date1}.rslc.mli widthmli 1 1 0 1.0 1. .20 0. &
+
+    # Geocode unwrapped
+    pg.geocode_back(os.path.join(ifgm_dir,f'{date1}-{date2}.diff_sm.unw'), widthmli, 
+                    os.path.join(ifgm_dir,f'{dateM}M.lt_fine'), 
+                    os.path.join(ifgm_dir,f'{date1}-{date2}.diff_sm.unw.geo'), widthdem, '-', 0) 
+
+    pg.geocode_back(os.path.join(ifgm_dir,f'{date1}-{date2}.cc'), 
+                        widthmli, 
+                        os.path.join(ifgm_dir,f'{dateM}M.lt_fine'), 
+                        os.path.join(ifgm_dir,f'{date1}-{date2}.cc.geo'),
+                        widthdem, '-', 2)
+    pg.geocode_back(os.path.join(ifgm_dir,f'{date1}-{date2}.smcc3'), 
+                        widthmli, 
+                        os.path.join(ifgm_dir,f'{dateM}M.lt_fine'), 
+                        os.path.join(ifgm_dir,f'{date1}-{date2}.smcc3.geo'),
+                        widthdem, '-', 2)
+    #data2geotiff ${procdir}/$geodir/EQA.dem_par ${procdir}/$GEOCDIR/${ifg}/${ifg}.geo.cc 2 ${procdir}/$GEOCDIR/${ifg}/${ifg}.geo.cc.orig.tif 0.0
+    #gdal_translate -of GTiff -ot Byte -scale 0 1 0 255 -co COMPRESS=DEFLATE -co PREDICTOR=2 ${procdir}/$GEOCDIR/${ifg}/${ifg}.geo.cc.orig.tif ${procdir}/$GEOCDIR/${ifg}/${ifg}.geo.cc.tif
+    # optional_plots = True
+    # if optional_plots:
+    #     if os.path.exists(os.path.join(rslc_dir,date2,f'{date2}_geocode.mli')):
+    #         pass
+    #     else:
+    #         # if not os.path.exists(os.path.join(rslc_dir, f'{dateM}M.lt_fine')):
+    #         #     os.symlink(os.path.join(ifgm_dir, f'{dateM}M.lt_fine'), os.path.join(rslc_dir, f'{dateM}M.lt_fine'))
+    #         print('HERE: Geocoding mli')
+            
+    #         pg.geocode_back(os.path.join(rslc_dir,date2,f'{date2}.mli'),
+    #                     widthmli, 
+    #                     os.path.join(ifgm_dir,f'{dateM}M.lt_fine'), 
+    #                     os.path.join(rslc_dir,date2,f'{date2}_geocode.mli'), 
+    #                     widthdem, '-', 2, 0)
+            
+
+
+    #     pg.rascc(os.path.join(ifgm_dir,f'{date1}-{date2}.cc.geo'), 
+    #                 os.path.join(rslc_dir,date2,f'{date2}_geocode.mli'), 
+    #                 widthdem, 1, 1, 0, 10, 10, 0.1, 0.9, 1.0, .35, 1,
+    #                 os.path.join(ifgm_dir,f'{date1}-{date2}.cc.geo.tif'))
+
+    #     pg.rasrmg(os.path.join(ifgm_dir,f'{date1}-{date2}.diff_sm.unw.geo'), 
+    #                 os.path.join(rslc_dir,date2,f'{date2}_geocode.mli'), 
+    #                 widthdem, 1, 1, 0, 1, 1, 1., 1., .20, 0, 1, os.path.join(ifgm_dir,f'{date1}-{date2}.diff_sm.unw.geo.tif'))
+
+
+    #     pg.rascc(os.path.join(ifgm_dir,f'{date1}-{date2}.smcc3'), 
+    #                 os.path.join(rslc_dir,date2,f'{date2}.mli'), 
+    #                 widthmli, 1, 1, 0, 10, 10, 0.1, 0.9, 1.0, .35, 1,
+    #                 os.path.join(ifgm_dir,f'{date1}-{date2}.smcc3'+'.tif'))
+    return 
+
+
