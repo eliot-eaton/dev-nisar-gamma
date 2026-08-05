@@ -896,3 +896,190 @@ def date_diff_days(d1, d2):
     dt1 = datetime.strptime(d1, fmt)
     dt2 = datetime.strptime(d2, fmt)
     return (dt2 - dt1).days
+
+
+def proc_if(date1,date2,config):
+
+
+    # Assign variables
+    rlks = config["rlks"]
+    azlks = config["azlks"]
+    dem = config["dem"]
+    demlat = config["demlat"]
+    demlon = config["demlon"]
+    npat_r = config["npat_r"]
+    npat_az = config["npat_az"]
+    r_init = config["r_init"]
+    az_init = config["az_init"]
+    dateM = config['dateM']
+    topdir = config['topdir']
+    slc_dir = config["slc_dir"]
+    dim_dir = config["dim_dir"]
+    
+
+    dateM_mli_par = pg.ParFile(os.path.join(topdir,'slcs',f'{dateM}M',f'{dateM}.mli.par'))
+    lengthmli= int(dateM_mli_par.get_value('azimuth_lines')) 
+    widthmli=int(dateM_mli_par.get_value('range_samples'))
+
+   
+    cleanup = config["cleanup"]
+
+    dem_par = pg.ParFile(os.path.join(slc_dir,f'{dateM}M','P.dem_par'))	
+    widthdem=int(dem_par.get_value('width'))
+    
+    if os.path.exists(os.path.join(topdir,'ifgms',f'{date1}-{date2}')):
+        print(bcolors.WARNING + f"Directory {topdir}/ifgms/{date1}-{date2} already exists. Skipping processing." + bcolors.ENDC)
+        return False
+    
+    os.makedirs(os.path.join(topdir,'ifgms',f'{date1}-{date2}'),exist_ok = True)
+    ifgm_dir = os.path.join(topdir,'ifgms',f'{date1}-{date2}')
+    rslc_dir = os.path.join(topdir,'rslc')
+    
+    file_list = []
+    for pattern in [[f'{dateM}M','*.lt*'],[f'{dateM}M','*.mli*'], [f'{dateM}M','*.hgt'], [f'{dateM}M','P.*']]:
+        print(bcolors.OKBLUE+f'{os.path.join(slc_dir,pattern[0],pattern[1])}'+bcolors.ENDC)
+        for files in glob(os.path.join(slc_dir,pattern[0],pattern[1])):
+            file_list.append(files)
+    for pattern in [[date1,f'{date1}*.rslc*'],[date2,f'{date2}*.rslc*']]:
+        print(bcolors.OKBLUE+f'{os.path.join(slc_dir,pattern[0],pattern[1])}'+bcolors.ENDC)
+        for files in glob(os.path.join(rslc_dir,pattern[0],pattern[1])):
+            file_list.append(files)
+    
+    for file in file_list:
+        if os.path.exists(os.path.join(ifgm_dir,file.split('/')[-1])):
+            print(bcolors.WARNING +f'No sym link for {file}, file already exists' +bcolors.ENDC)
+       
+        else:
+            print(bcolors.OKBLUE +f'sym link for {file}' +bcolors.ENDC)
+            os.symlink(file,os.path.join(ifgm_dir,file.split('/')[-1]))
+
+        # pg.geocode(os.path.join(ifgm_dir,f'{dateM}M.lt_fine'),
+        #            os.path.join(ifgm_dir,f'P.dem'),
+        #            widthdem, 
+        #            os.path.join(ifgm_dir,f'{dateM}M.hgt'),
+        #            widthmli,lengthmli,2,0)
+    
+    pg.create_offset(os.path.join(ifgm_dir,f'{date1}.rslc.par'),
+                     os.path.join(ifgm_dir,f'{date2}.rslc.par'),
+                     os.path.join(ifgm_dir, f'{date1}_{date2}.off'),
+                     1, rlks, azlks, 0)
+
+    pg.phase_sim_orb(os.path.join(ifgm_dir,f'{date1}.rslc.par'),
+                     os.path.join(ifgm_dir, f'{date2}.rslc.par'),
+                     os.path.join(ifgm_dir, f'{date1}_{date2}.off'),
+                     os.path.join(ifgm_dir, f'{dateM}M.hgt'),
+                     os.path.join(ifgm_dir, f'{date1}_{date2}.sim_unw'),
+                     os.path.join(slc_dir,f'{dateM}M', f'{dateM}.slc.par'),
+                     '-', '-', 1, 1)
+
+    pg.SLC_diff_intf(os.path.join(ifgm_dir,f'{date1}.rslc'),
+                     os.path.join(ifgm_dir,f'{date2}.rslc'),
+                     os.path.join(ifgm_dir,f'{date1}.rslc.par'),
+                     os.path.join(ifgm_dir,f'{date2}.rslc.par'),
+                     os.path.join(ifgm_dir, f'{date1}_{date2}.off'),
+                     os.path.join(ifgm_dir, f'{date1}_{date2}.sim_unw'),
+                     os.path.join(ifgm_dir, f'{date1}-{date2}.diff'),
+                     rlks, azlks, 0, 0, 0.2, 1, 1)
+    
+
+
+      
+    pg.base_init(os.path.join(ifgm_dir,f'{date2}.rslc.par'),
+                    os.path.join(ifgm_dir,f'{date1}.rslc.par'), 
+                    os.path.join(ifgm_dir,f'{date1}_{date2}.off'), 
+                    os.path.join(ifgm_dir,f'{date1}-{date2}.diff'), 
+                    os.path.join(ifgm_dir,f'{date1}-{date2}.base'), 0)
+        
+    #Computation of baseline components normal and parallel to look vector.       
+    pg.rasmph_pwr(os.path.join(ifgm_dir,f'{date1}-{date2}.diff'), 
+                  os.path.join(slc_dir,f'{dateM}M',f'{dateM}.mli'),
+                  widthmli, 1, 1, 0, '-', '-', 1., .20, 1,
+                  os.path.join(ifgm_dir,f'{date1}-{date2}.diff.tif'))    
+    
+    
+    base_perp_file =os.path.join(ifgm_dir,f'{date1}_{date2}.base.perp')
+    with open(base_perp_file, 'w') as file:
+        with redirect_stdout(file):
+             pg.base_perp(os.path.join(ifgm_dir,f'{date1}-{date2}.base'), 
+                          os.path.join(slc_dir,date2,f'{date2}.slc.par'), 
+                          os.path.join(ifgm_dir,f'{date1}_{date2}.off'))
+    
+    
+    # Calculate bperp
+    with open(base_perp_file, 'r') as file:
+        lines = file.readlines()[17:]
+
+        bperp_values = []
+        for line in lines:
+            # if line in lines is empty, contains 'user time', 'system time', 'elapsed time' or only contains whitespace, skip it
+            if not line or 'user time' in line or 'system time' in line or 'elapsed time' in line or not line.strip():
+                continue
+            else:
+                try:
+                    bperp_values.append(float(line.split()[7]))
+                except IndexError:
+                    print(f"Skipping line due to insufficient values: {line.strip()}")
+                
+    if not bperp_values:
+        print(f"No bperp values found for {date1} and {date2}. Skipping.")
+    else:
+
+        bperp = int(sum(bperp_values) / len(bperp_values)) 
+    
+
+        # Get bperp1 and bperp2
+        bperp1 = subprocess.check_output(f'grep {date1} {topdir}/slcs/{dateM}.b_perp | awk \'(NR==1){{print $2}}\'', shell=True).decode().strip()
+        bperp2 = subprocess.check_output(f'grep {date2} {topdir}/slcs/{dateM}.b_perp | awk \'(NR==1){{print $2}}\'', shell=True).decode().strip()
+        sm = int(datetime.strptime(dateM, "%Y%m%d").timestamp())
+        s1 = int(datetime.strptime(date1, "%Y%m%d").timestamp())
+        s2 = int(datetime.strptime(date2, "%Y%m%d").timestamp())
+        # Calculate number of days
+        ndays12 = (s2 - s1) / 86400
+        ndays1 = (sm - s1) / 86400
+        ndays2 = (sm - s2) / 86400
+        try:
+            with open(f'{topdir}/b.perp', 'a') as file:
+                file.write(f'{date1} {date2} {bperp} {ndays12:.1f} {ndays1:.1f} {ndays2:.1f} {bperp1} {bperp2}\n')
+        except Exception as e: 
+            print(f"Error writing bperp values to file: {e}")
+
+    #Adaptive interferogram filter using the power spectral density
+    pg.adf(os.path.join(ifgm_dir,f'{date1}-{date2}.diff'), 
+           os.path.join(ifgm_dir,f'{date1}-{date2}.diff_sm'), 
+           os.path.join(ifgm_dir,f'{date1}-{date2}.smcc'),
+           widthmli, 0.3, 64, 7, '-', 0, '-', 0.2)
+    
+    #Adaptive interferogram filter using the power spectral density    
+    pg.adf(os.path.join(ifgm_dir,f'{date1}-{date2}.diff_sm'), 
+           os.path.join(ifgm_dir,f'{date1}-{date2}.diff_sm2'), 
+           os.path.join(ifgm_dir,f'{date1}-{date2}.smcc2'), 
+           widthmli, 0.4, 32, 7, '-',0, '-', 0.2)
+    
+
+ 
+    #Adaptive interferogram filter using the power spectral density    
+    pg.adf(os.path.join(ifgm_dir,f'{date1}-{date2}.diff_sm2'), 
+           os.path.join(ifgm_dir,f'{date1}-{date2}.diff_sm3'), 
+           os.path.join(ifgm_dir,f'{date1}-{date2}.smcc3'), 
+           widthmli, 0.5, 16, 7, '-', 0, '-', 0.2)
+    
+    pg.rasmph_pwr(os.path.join(ifgm_dir,f'{date1}-{date2}.diff_sm3'), 
+                  os.path.join(rslc_dir,f'{date2}',f'{date2}.mli'),
+                  widthmli, 1, 1, 0, '-', '-', 1., .20, 1,
+                  os.path.join(ifgm_dir,f'{date1}-{date2}.diff_sm3.tif'))
+    
+    pg.rascc(os.path.join(ifgm_dir,f'{date1}-{date2}.smcc3'), 
+                os.path.join(rslc_dir,date1,f'{date1}.mli'), 
+                widthmli, 1, 1, 0, '-', '-', 0.1, 0.9, 1.0, .35, 1,
+                os.path.join(ifgm_dir,f'{date1}-{date2}.smcc3'+'.tif'))
+    
+    #plot_backup_diff(date1,date2,config)
+
+    if cleanup:
+        for file in [f'{date1}-{date2}.diff_sm', f'{date1}-{date2}.smcc', f'{date1}-{date2}.diff_sm2', f'{date1}-{date2}.smcc2']:
+            try:
+                os.remove(os.path.join(ifgm_dir, file))
+            except Exception as e:
+                print(f'ERROR removing {file}: {e}')
+
+    return True
