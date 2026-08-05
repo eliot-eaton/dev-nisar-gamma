@@ -324,8 +324,8 @@ def dev_proc_slc_to_rslc(date, config):
     rslc_0_par_file = os.path.join(rslc_date_dir, f'{date}.0.rslc.par')
     rslc_file = os.path.join(rslc_date_dir, f'{date}.rslc')
     rslc_par_file = os.path.join(rslc_date_dir, f'{date}.rslc.par')
-    rmli_0_file = os.path.join(rslc_date_dir, f'{date}.0.mli')
-    rmli_0_par_file = os.path.join(rslc_date_dir, f'{date}.0.mli.par')
+    rmli_file = os.path.join(rslc_date_dir, f'{date}.0.mli')
+    rmli_par_file = os.path.join(rslc_date_dir, f'{date}.0.mli.par')
     ref_slc_file = os.path.join(slc_dateM_dir, f'{dateM}.slc')
     ref_slc_par_file = os.path.join(slc_dateM_dir, f'{dateM}.slc.par')
     hgt_file = os.path.join(slc_dateM_dir, f'{dateM}M.hgt')  # or provide a height map if available
@@ -336,8 +336,8 @@ def dev_proc_slc_to_rslc(date, config):
         slc_par_file,
         rslc_0_file,
         rslc_0_par_file,
-        rmli_0_file,
-        rmli_0_par_file,
+        rmli_file,
+        rmli_par_file,
         ref_slc_file,
         ref_slc_par_file,
         hgt_file,
@@ -351,7 +351,7 @@ def dev_proc_slc_to_rslc(date, config):
                         rslc_par_file, 
                         ref_slc_file, 
                         ref_slc_par_file, 
-                        rstep=50, azstep=50, rwin=128, azwin=128, n_ovr=2, cc_thres=0.05, offset_img=None
+                        rstep=50, azstep=50, rwin=128, azwin=128, n_ovr=2, cc_thres=0.05, offset_img=True
                     )
 
     dateM_mli_par = pg.ParFile(os.path.join(topdir,'slcs',f'{dateM}M',f'{dateM}.mli.par'))
@@ -891,3 +891,8 @@ def baseline_relative_to_master(date,config):
         print(bcolors.FAIL + f'Error calculating baseline for {date}: {e}'+bcolors.ENDC)
         with open(os.path.join(topdir,'baselines'),'a') as f:
             f.write(f'{dateM} {date} 9999 {btemp}\n')
+def date_diff_days(d1, d2):
+    fmt = "%Y%m%d"  # matches '20210101'
+    dt1 = datetime.strptime(d1, fmt)
+    dt2 = datetime.strptime(d2, fmt)
+    return (dt2 - dt1).days
