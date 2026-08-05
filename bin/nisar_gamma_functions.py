@@ -320,10 +320,12 @@ def dev_proc_slc_to_rslc(date, config):
     # Define file paths
     slc_file = os.path.join(slc_date_dir, f'{date}.slc')
     slc_par_file = os.path.join(slc_date_dir, f'{date}.slc.par')
+    rslc_0_file = os.path.join(rslc_date_dir, f'{date}.0.rslc')
+    rslc_0_par_file = os.path.join(rslc_date_dir, f'{date}.0.rslc.par')
     rslc_file = os.path.join(rslc_date_dir, f'{date}.rslc')
     rslc_par_file = os.path.join(rslc_date_dir, f'{date}.rslc.par')
-    rmli_file = os.path.join(rslc_date_dir, f'{date}.mli')
-    rmli_par_file = os.path.join(rslc_date_dir, f'{date}.mli.par')
+    rmli_0_file = os.path.join(rslc_date_dir, f'{date}.0.mli')
+    rmli_0_par_file = os.path.join(rslc_date_dir, f'{date}.0.mli.par')
     ref_slc_file = os.path.join(slc_dateM_dir, f'{dateM}.slc')
     ref_slc_par_file = os.path.join(slc_dateM_dir, f'{dateM}.slc.par')
     hgt_file = os.path.join(slc_dateM_dir, f'{dateM}M.hgt')  # or provide a height map if available
@@ -332,10 +334,10 @@ def dev_proc_slc_to_rslc(date, config):
     pg.SLC_coreg(
         slc_file,
         slc_par_file,
-        rslc_file,
-        rslc_par_file,
-        rmli_file,
-        rmli_par_file,
+        rslc_0_file,
+        rslc_0_par_file,
+        rmli_0_file,
+        rmli_0_par_file,
         ref_slc_file,
         ref_slc_par_file,
         hgt_file,
@@ -343,6 +345,14 @@ def dev_proc_slc_to_rslc(date, config):
         azlks,npoly=1
     )
 
+    pg.SLC_coreg_refine(rslc_0_file,
+                        rslc_0_par_file, 
+                        rslc_file, 
+                        rslc_par_file, 
+                        ref_slc_file, 
+                        ref_slc_par_file, 
+                        rstep=50, azstep=50, rwin=128, azwin=128, n_ovr=2, cc_thres=0.05, offset_img=None
+                    )
 
     dateM_mli_par = pg.ParFile(os.path.join(topdir,'slcs',f'{dateM}M',f'{dateM}.mli.par'))
     lengthmli= int(dateM_mli_par.get_value('azimuth_lines')) 
@@ -829,3 +839,55 @@ def parse_dem_ers_file(filepath):
     output_list = [ncells,nlines,xdim,ydim,west,north]
 
     return data, output_list
+def baseline_relative_to_master(date,config):
+    import subprocess as subp
+    from datetime import datetime
+
+
+
+    # Assign variables
+    rlks = config["rlks"]
+    azlks = config["azlks"]
+    dem = config["dem"]
+    demlat = config["demlat"]
+    demlon = config["demlon"]
+    npat_r = config["npat_r"]
+    npat_az = config["npat_az"]
+    r_init = config["r_init"]
+    az_init = config["az_init"]
+    dateM = config['dateM']
+    topdir = config['topdir']
+    slc_dir = config["slc_dir"]
+    dim_dir = config["dim_dir"]
+    rslc_dir = os.path.join(topdir,'rslc')
+    # Output baseline relative to master
+
+    # check if baselines file exists in topdir
+    if os.path.exists(os.path.join(topdir,'baselines')):
+        print('baselines file exists')
+    else:
+        # make empty file 
+        open(os.path.join(topdir,'baselines'),'a').close()
+
+   
+    basecall = f"base_orbit {os.path.join(topdir,'slcs',f'{dateM}M',f'{dateM}.slc.par')} {os.path.join(topdir,'rslc',date,date+'.rslc.par')} - | grep perpendicular | gawk '{{print $5}}'"
+                                                              
+    
+    print(bcolors.OKBLUE + f'Calculating baseline using command: {basecall}'+bcolors.ENDC)
+    
+    btemp = date_diff_days(dateM, date)
+    try:
+        bperp = subp.check_output(basecall, shell=True).decode('utf-8')
+        # check if bperp is empty
+        if bperp.strip() == '':
+            raise ValueError('bperp is empty')
+        print(bcolors.OKGREEN + f'Baseline perpendicular for {date} relative to {dateM} is {bperp.strip()} meters'+bcolors.ENDC)
+
+        # calculate difference in days between dateM and date 
+        
+        with open(os.path.join(topdir,'baselines'),'a') as f:
+            f.write(f'{dateM} {date} {bperp.strip()} {btemp}\n')
+    except Exception as e:
+        print(bcolors.FAIL + f'Error calculating baseline for {date}: {e}'+bcolors.ENDC)
+        with open(os.path.join(topdir,'baselines'),'a') as f:
+            f.write(f'{dateM} {date} 9999 {btemp}\n')
