@@ -991,10 +991,10 @@ def proc_if(date1,date2,config):
                     os.path.join(ifgm_dir,f'{date1}-{date2}.base'), 0)
         
     #Computation of baseline components normal and parallel to look vector.       
-    pg.rasmph_pwr(os.path.join(ifgm_dir,f'{date1}-{date2}.diff'), 
-                  os.path.join(slc_dir,f'{dateM}M',f'{dateM}.mli'),
-                  widthmli, 1, 1, 0, '-', '-', 1., .20, 1,
-                  os.path.join(ifgm_dir,f'{date1}-{date2}.diff.tif'))    
+    # pg.rasmph_pwr(os.path.join(ifgm_dir,f'{date1}-{date2}.diff'), 
+    #               os.path.join(slc_dir,f'{dateM}M',f'{dateM}.mli'),
+    #               widthmli, 1, 1, 0, '-', '-', 1., .20, 1,
+    #               os.path.join(ifgm_dir,f'{date1}-{date2}.diff.tif'))    
     
     
     base_perp_file =os.path.join(ifgm_dir,f'{date1}_{date2}.base.perp')
@@ -1065,13 +1065,14 @@ def proc_if(date1,date2,config):
     
     pg.rasmph_pwr(os.path.join(ifgm_dir,f'{date1}-{date2}.diff_sm3'), 
                   os.path.join(rslc_dir,f'{date2}',f'{date2}.mli'),
-                  widthmli, 1, 1, 0, '-', '-', 1., .20, 1,
-                  os.path.join(ifgm_dir,f'{date1}-{date2}.diff_sm3.tif'))
+                  widthmli, '-', '-', '-', '-','-', 
+                  os.path.join(ifgm_dir,f'{date1}-{date2}.diff_sm3.tif'),
+                   1., .20)
     
-    pg.rascc(os.path.join(ifgm_dir,f'{date1}-{date2}.smcc3'), 
-                os.path.join(rslc_dir,date1,f'{date1}.mli'), 
-                widthmli, 1, 1, 0, '-', '-', 0.1, 0.9, 1.0, .35, 1,
-                os.path.join(ifgm_dir,f'{date1}-{date2}.smcc3'+'.tif'))
+    # pg.rascc(os.path.join(ifgm_dir,f'{date1}-{date2}.smcc3'), 
+    #             os.path.join(rslc_dir,date1,f'{date1}.mli'), 
+    #             widthmli, 1, 1, 0, '-', '-', 0.1, 0.9, 1.0, .35, 1,
+    #             os.path.join(ifgm_dir,f'{date1}-{date2}.smcc3'+'.tif'))
     
     #plot_backup_diff(date1,date2,config)
 
