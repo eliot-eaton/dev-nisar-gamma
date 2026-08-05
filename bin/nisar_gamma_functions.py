@@ -1201,3 +1201,51 @@ def proc_unw(date1,date2,config):
     return 
 
 
+
+def output_licsbas_tifs(date1,date2,config):
+    # Assign variables
+    rlks = config["rlks"]
+    azlks = config["azlks"]
+    dem = config["dem"]
+    demlat = config["demlat"]
+    demlon = config["demlon"]
+    npat_r = config["npat_r"]
+    npat_az = config["npat_az"]
+    r_init = config["r_init"]
+    az_init = config["az_init"]
+    dateM = config['dateM']
+    topdir = config['topdir']
+    slc_dir = config["slc_dir"]
+    dim_dir = config["dim_dir"]
+   
+    ifgm_dir = os.path.join(topdir,'ifgms',f'{date1}-{date2}')
+
+    os.makedirs(os.path.join(topdir,'LiCSBAS'),exist_ok = True)
+    os.makedirs(os.path.join(topdir,'LiCSBAS','GEOC'),exist_ok = True)
+    os.makedirs(os.path.join(topdir,'LiCSBAS','GEOC',f'{date1}_{date2}'),exist_ok = True)
+    GEOC_IF_dir = os.path.join(topdir,'LiCSBAS','GEOC',f'{date1}_{date2}')
+
+    dateM_mli_par = pg.ParFile(os.path.join(topdir,'slcs',f'{dateM}M',f'{dateM}.mli.par'))
+    lengthmli= int(dateM_mli_par.get_value('azimuth_lines')) 
+    widthmli=int(dateM_mli_par.get_value('range_samples'))
+
+   
+    cleanup = config["cleanup"]
+
+    dem_par = pg.ParFile(os.path.join(slc_dir,f'{dateM}M','P.dem_par'))	
+    widthdem=int(dem_par.get_value('width'))
+    
+    licsbas_geo_tif = os.path.join(GEOC_IF_dir,f'{date1}_{date2}'+'.geo.unw.tif')
+    licsbas_geo_cc_tif = os.path.join(GEOC_IF_dir,f'{date1}_{date2}'+'.geo.cc.tif')
+    try:
+        pg.data2geotiff(os.path.join(ifgm_dir,'P.dem_par'), os.path.join(ifgm_dir,f'{date1}-{date2}.diff_sm.unw.geo'), 2, licsbas_geo_tif, 0.0)
+        pg.data2geotiff(os.path.join(ifgm_dir,'P.dem_par'), 
+                        os.path.join(ifgm_dir,f'{date1}-{date2}.cc.geo'),
+                        2, licsbas_geo_cc_tif, 0.0) 
+    except Exception as e:
+        print(f"Error during data2geotiff: {e}")
+    
+    os.chdir(topdir)
+
+
+
