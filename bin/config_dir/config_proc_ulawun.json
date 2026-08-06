@@ -12,7 +12,7 @@
     "dateM": "20260628",
     "n_days":230,
     "dateS": "20260624",
-    "dateE": "20260720",
+    "dateE": "20261201",
     "orbit_dir_file":"asc_or_desc_dates.txt",
     "min_n_days":1,
     "cleanup":true,

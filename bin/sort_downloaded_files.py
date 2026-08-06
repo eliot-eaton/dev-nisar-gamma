@@ -92,7 +92,7 @@ def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Sort downloaded NISAR files into "
-            "rslc/YYYYMMDD/ directories."
+            "h5s/YYYYMMDD/ directories."
         )
     )
     parser.add_argument(
@@ -105,9 +105,9 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "-o",
         "--output",
-        default="slcs",
+        default="h5s",
         type=Path,
-        help="Top-level output directory; default: slcs",
+        help="Top-level output directory; default: h5s",
     )
     parser.add_argument(
         "--dry-run",

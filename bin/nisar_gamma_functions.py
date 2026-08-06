@@ -222,7 +222,11 @@ def h5_to_slc(date,config):
         os.makedirs(os.path.join(slc_dir,date))
     
     
-    date_h5 = glob(os.path.join(topdir,'h5s','*',f'*{date}*h5'))[0]
+    date_h5 = glob(os.path.join(topdir,'h5s','*',f'*{date}*h5'))
+    if len(date_h5) == 0:
+        return print(bcolors.WARNING + f"No h5 file found for date {date}"+bcolors.ENDC)
+    else:
+        date_h5 = date_h5[0]
     print('date_h5:',date_h5)
 
   
