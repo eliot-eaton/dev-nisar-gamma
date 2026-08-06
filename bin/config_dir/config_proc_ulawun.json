@@ -9,7 +9,7 @@
     "npat_az": 1,
     "r_init": 3750,
     "az_init": 10500,
-    "dateM": "20260719",
+    "dateM": "20260628",
     "n_days":230,
     "dateS": "20260624",
     "dateE": "20260720",
@@ -20,5 +20,5 @@
     "proc_unw":true,
     "minimal_output":true,
     "bperp_threshold":400,
-    "rslc_dates":true
+    "rslc_dates":false
 }
